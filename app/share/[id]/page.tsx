@@ -66,7 +66,7 @@ export default function SharedSlideshowPage() {
         </div>
       </nav>
 
-      <SlideshowViewer markdown={data.slideshow.markdown} />
+      <SlideshowViewer id={id} markdown={data.slideshow.markdown} />
     </div>
   );
 }

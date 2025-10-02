@@ -1,114 +1,96 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface SlideshowViewerProps {
+  id: string;
   markdown: string;
 }
 
-export function SlideshowViewer({ markdown }: SlideshowViewerProps) {
-  const [slides, setSlides] = useState<string[]>([]);
-  const [currentSlide, setCurrentSlide] = useState(0);
+interface BuildState {
+  status: 'idle' | 'building' | 'ready' | 'error';
+  error?: string;
+}
 
-  useEffect(() => {
-    const slideArray = markdown
-      .split(/^---$/m)
-      .map((slide) => slide.trim())
-      .filter((slide) => slide.length > 0);
-    setSlides(slideArray);
-    setCurrentSlide(0);
-  }, [markdown]);
+export function SlideshowViewer({ id, markdown }: SlideshowViewerProps) {
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [buildState, setBuildState] = useState<BuildState>({ status: 'idle' });
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === ' ') {
-        e.preventDefault();
-        nextSlide();
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        prevSlide();
+  const iframeSrc = useMemo(() => {
+    if (buildState.status !== 'ready') return '';
+    const cacheBuster = Date.now();
+    return `/slidev-built/${encodeURIComponent(id)}/index.html?cb=${cacheBuster}`;
+  }, [buildState.status, id]);
+
+  const requestBuild = useCallback(async () => {
+    if (!markdown.trim()) {
+      setBuildState({ status: 'error', error: 'Presentation has no content to render.' });
+      return;
+    }
+
+    setBuildState({ status: 'building' });
+    setIframeLoaded(false);
+
+    try {
+      const response = await fetch('/api/slidev/build', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, markdown }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || 'Failed to render presentation with Slidev.');
       }
-    };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentSlide, slides.length]);
+      setBuildState({ status: 'ready' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to render presentation with Slidev.';
+      setBuildState({ status: 'error', error: message });
+    }
+  }, [id, markdown]);
 
-  const nextSlide = () => {
-    setCurrentSlide((prev) => Math.min(prev + 1, slides.length - 1));
-  };
+  useEffect(() => {
+    requestBuild();
+  }, [requestBuild]);
 
-  const prevSlide = () => {
-    setCurrentSlide((prev) => Math.max(prev - 1, 0));
-  };
-
-  const goToSlide = (index: number) => {
-    setCurrentSlide(index);
-  };
-
-  if (slides.length === 0) {
+  if (buildState.status === 'error') {
     return (
-      <div className="flex items-center justify-center h-screen text-[#a0a0a0]">
-        <p>No slides to display</p>
+      <div className="flex h-[calc(100vh-4rem)] flex-col items-center justify-center space-y-4">
+        <p className="text-red-400">{buildState.error ?? 'Unable to load presentation.'}</p>
+        <button
+          onClick={requestBuild}
+          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+        >
+          Retry Rendering
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="relative h-screen flex flex-col">
-      <div className="flex-1 flex items-center justify-center p-8 overflow-auto">
-        <div className="max-w-5xl w-full bg-white rounded-lg shadow-2xl p-12 min-h-[600px] flex items-center justify-center">
-          <div className="prose prose-lg max-w-none w-full">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {slides[currentSlide]}
-            </ReactMarkdown>
+    <div className="relative flex h-[calc(100vh-4rem)] flex-col">
+      {(buildState.status === 'building' || !iframeLoaded) && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center space-y-4 bg-gray-900">
+          <div className="text-center text-gray-200">
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-indigo-500" />
+            <p className="text-sm font-medium text-gray-300">Preparing Slidev presentation…</p>
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="bg-[#1a1a1a] border-t border-[#2a2a2a] px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button
-            onClick={prevSlide}
-            disabled={currentSlide === 0}
-            className="px-4 py-2 bg-[#60a5fa] text-white rounded-md hover:bg-[#3b82f6] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            ← Previous
-          </button>
-
-          <div className="flex items-center space-x-2">
-            <span className="text-[#a0a0a0] text-sm">
-              Slide {currentSlide + 1} of {slides.length}
-            </span>
-            <div className="flex space-x-1 ml-4">
-              {slides.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => goToSlide(index)}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    index === currentSlide ? 'bg-[#60a5fa]' : 'bg-[#666] hover:bg-[#888]'
-                  }`}
-                  aria-label={`Go to slide ${index + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={nextSlide}
-            disabled={currentSlide === slides.length - 1}
-            className="px-4 py-2 bg-[#60a5fa] text-white rounded-md hover:bg-[#3b82f6] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Next →
-          </button>
-        </div>
-      </div>
-
-      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 text-[#666] text-xs">
-        Use arrow keys or space to navigate
-      </div>
+      {buildState.status === 'ready' && (
+        <iframe
+          key={iframeSrc}
+          src={iframeSrc}
+          onLoad={() => setIframeLoaded(true)}
+          title="Slidev presentation"
+          className="h-full w-full flex-1 border-0 bg-black"
+          allowFullScreen
+        />
+      )}
     </div>
   );
 }

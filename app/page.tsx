@@ -1,6 +1,32 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { trpc } from '@/lib/trpc';
 
 export default function Home() {
+  const router = useRouter();
+  const { data: userData, isLoading } = trpc.auth.getUser.useQuery();
+
+  useEffect(() => {
+    if (!isLoading && userData?.user) {
+      router.push('/dashboard');
+    }
+  }, [userData, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#60a5fa]"></div>
+      </div>
+    );
+  }
+
+  if (userData?.user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       <nav className="border-b border-[#2a2a2a]">
@@ -39,7 +65,7 @@ export default function Home() {
           </p>
           <div className="flex gap-3">
             <Link
-              href="/auth/sign-up"
+              href="/dashboard"
               className="px-5 py-2.5 bg-[#60a5fa] text-white text-sm font-medium rounded hover:bg-[#3b82f6] transition-colors"
             >
               Get started

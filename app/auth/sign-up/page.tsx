@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { trpc } from '@/lib/trpc';
@@ -11,6 +11,8 @@ export default function SignUpPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const router = useRouter();
+
+  const { data: userData, isLoading: userLoading } = trpc.auth.getUser.useQuery();
 
   const signUpMutation = trpc.auth.signUp.useMutation({
     onSuccess: () => {
@@ -25,11 +27,29 @@ export default function SignUpPage() {
     },
   });
 
+  useEffect(() => {
+    if (!userLoading && userData?.user) {
+      router.push('/dashboard');
+    }
+  }, [userData, userLoading, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     signUpMutation.mutate({ email, password });
   };
+
+  if (userLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#60a5fa]"></div>
+      </div>
+    );
+  }
+
+  if (userData?.user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">

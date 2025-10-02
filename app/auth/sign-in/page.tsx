@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { trpc } from '@/lib/trpc';
@@ -10,6 +10,8 @@ export default function SignInPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
+
+  const { data: userData, isLoading: userLoading } = trpc.auth.getUser.useQuery();
 
   const signInMutation = trpc.auth.signIn.useMutation({
     onSuccess: () => {
@@ -21,11 +23,29 @@ export default function SignInPage() {
     },
   });
 
+  useEffect(() => {
+    if (!userLoading && userData?.user) {
+      router.push('/dashboard');
+    }
+  }, [userData, userLoading, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     signInMutation.mutate({ email, password });
   };
+
+  if (userLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#60a5fa]"></div>
+      </div>
+    );
+  }
+
+  if (userData?.user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
@@ -94,7 +114,7 @@ export default function SignInPage() {
               href="/auth/sign-up"
               className="text-sm font-medium text-[#60a5fa] hover:text-[#3b82f6] transition-colors"
             >
-              Don't have an account? Sign up
+              Don&apos;t have an account? Sign up
             </Link>
           </div>
         </form>

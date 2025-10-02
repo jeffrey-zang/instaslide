@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@slidev/client": "^52.2.4",
+    "@slidev/parser": "^52.2.4",
+    "@slidev/theme-default": "^0.25.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.58.0",
     "@tanstack/react-query": "^5.90.2",
@@ -24,17 +27,21 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "superjson": "^2.2.2",
+    "vue": "^3.5.22",
     "zod": "^4.1.11"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@slidev/cli": "^52.2.4",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-vue": "^6.0.1",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^7.1.7"
   }
 }

@@ -12,7 +12,7 @@ export const slideshowRouter = router({
       outline: z.string(),
       title: z.string().optional(),
     }))
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       const prompt = `Generate a Slidev markdown presentation based on this outline:
 
 ${input.outline}

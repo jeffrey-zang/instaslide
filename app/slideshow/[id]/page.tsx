@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import Link from 'next/link';
@@ -8,7 +8,6 @@ import { SlideshowViewer } from '@/components/slideshow-viewer';
 
 export default function SlideshowPage() {
   const params = useParams();
-  const router = useRouter();
   const id = params.id as string;
   const [shareUrl, setShareUrl] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
@@ -31,7 +30,7 @@ export default function SlideshowPage() {
         isPublic: !data.slideshow.is_public,
       });
       setShowShareModal(true);
-    } catch (error) {
+    } catch {
       alert('Error updating sharing settings');
     }
   };
@@ -112,7 +111,7 @@ export default function SlideshowPage() {
         </div>
       </nav>
 
-      <SlideshowViewer markdown={data.slideshow.markdown} />
+      <SlideshowViewer id={id} markdown={data.slideshow.markdown} />
 
       {showShareModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
