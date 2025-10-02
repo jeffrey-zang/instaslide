@@ -19,3 +19,5 @@ used claude heavily for ui, supabase, and basically everything else lmfao. was a
 # [demo here](https://instaslide.jeffz.dev)
 
 video demo below! :point_down:
+
+https://youtu.be/_VwbD8r3FVU
