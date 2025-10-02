@@ -1,36 +1,121 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# InstaSlide - AI Slideshow Creator
 
-## Getting Started
+Create stunning presentations from PDFs or outlines using AI powered by OpenAI.
 
-First, run the development server:
+## Features
+
+- **AI-Powered Generation**: Transform PDFs or outlines into beautiful Slidev markdown presentations
+- **Authentication**: Secure email/password authentication with Supabase
+- **Create from Outline**: Type or paste your presentation outline
+- **Create from PDF**: Upload PDF documents and convert them to presentations
+- **Save & Manage**: Store all your presentations in the cloud
+- **Share**: Make presentations public and share them with anyone via link
+- **Interactive Viewer**: Navigate through slides with keyboard controls
+
+## Tech Stack
+
+- **Frontend**: Next.js 15, TypeScript, TailwindCSS
+- **Backend**: tRPC for type-safe APIs
+- **Database**: Supabase (PostgreSQL with Row Level Security)
+- **Authentication**: Supabase Auth
+- **AI**: OpenAI GPT-4
+- **PDF Parsing**: pdf-parse
+- **Markdown Rendering**: react-markdown
+
+## Setup
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Set Up Supabase
+
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Run the SQL schema from `supabase-schema.sql` in the Supabase SQL editor
+3. Copy your project URL and anon key
+
+### 3. Configure Environment Variables
+
+Create a `.env.local` file with:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+### 4. Run the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database Schema
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The application uses a single `slideshows` table:
 
-## Learn More
+```sql
+- id (uuid, primary key)
+- user_id (uuid, references auth.users)
+- title (text)
+- markdown (text)
+- is_public (boolean)
+- created_at (timestamp)
+- updated_at (timestamp)
+```
 
-To learn more about Next.js, take a look at the following resources:
+Row Level Security policies ensure users can only access their own slideshows, while public slideshows are accessible to everyone.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+/app                    # Next.js app directory
+  /auth                # Authentication pages
+  /dashboard           # User dashboard
+  /create              # Slideshow creation pages
+  /slideshow           # Slideshow viewer
+  /share               # Public slideshow sharing
+  /api                 # API routes
+/components            # React components
+/lib                   # Utilities and clients
+  /providers           # React providers
+  /supabase            # Supabase client
+/server                # tRPC server
+  /routers             # tRPC routers
+```
 
-## Deploy on Vercel
+## Usage
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **Sign Up**: Create an account
+2. **Create Presentation**:
+   - Choose "From Outline" to enter text
+   - Choose "From PDF" to upload a document
+3. **View & Edit**: See your generated presentation
+4. **Share**: Toggle public and share the link
+5. **Manage**: View all your presentations in the dashboard
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Features in Detail
+
+### Authentication
+- Email/password authentication
+- Protected routes
+- Session management with Supabase
+
+### Slideshow Generation
+- Outline-based: AI generates slides from structured text
+- PDF-based: Extracts text from PDFs and creates slides
+- Slidev markdown format for beautiful presentations
+
+### Sharing
+- Toggle public/private for each presentation
+- Public presentations accessible via `/share/[id]`
+- Copy shareable links
+
+### Viewer
+- Keyboard navigation (arrow keys, space)
+- Slide indicators
+- Markdown rendering with syntax support
