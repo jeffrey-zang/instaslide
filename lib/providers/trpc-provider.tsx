@@ -6,8 +6,30 @@ import { useState } from 'react';
 import { trpc } from '../trpc';
 import superjson from 'superjson';
 
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 60 * 1000,
+      },
+    },
+  });
+}
+
+let browserQueryClient: QueryClient | undefined = undefined;
+
+function getQueryClient() {
+  if (typeof window === 'undefined') {
+    return makeQueryClient();
+  } else {
+    if (!browserQueryClient) browserQueryClient = makeQueryClient();
+    return browserQueryClient;
+  }
+}
+
 export function TRPCProvider({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const queryClient = getQueryClient();
+  
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [

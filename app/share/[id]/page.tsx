@@ -3,11 +3,11 @@
 import { useParams } from 'next/navigation';
 import { trpc } from '@/lib/trpc';
 import Link from 'next/link';
-import { SlideshowViewer } from '@/components/slideshow-viewer';
+import { SlideViewer } from '@/components/slide-viewer';
 
 export default function SharedSlideshowPage() {
-  const params = useParams();
-  const id = params.id as string;
+  const params = useParams() as { id: string };
+  const id = params.id;
 
   const { data, isLoading, error } = trpc.slideshow.getShared.useQuery({ id });
 
@@ -66,7 +66,7 @@ export default function SharedSlideshowPage() {
         </div>
       </nav>
 
-      <SlideshowViewer id={id} markdown={data.slideshow.markdown} />
+      <SlideViewer markdown={data.slideshow.markdown} />
     </div>
   );
 }

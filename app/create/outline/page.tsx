@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 export default function CreateFromOutlinePage() {
   const [title, setTitle] = useState('');
@@ -16,7 +17,7 @@ export default function CreateFromOutlinePage() {
 
   const handleGenerate = async () => {
     if (!outline.trim()) {
-      alert('Please enter an outline');
+      toast.error('Please enter an outline');
       return;
     }
 
@@ -32,9 +33,10 @@ export default function CreateFromOutlinePage() {
         markdown: result.markdown,
       });
 
+      toast.success('Presentation generated successfully!');
       router.push(`/slideshow/${savedResult.slideshow.id}`);
     } catch (error) {
-      alert('Error generating slideshow: ' + (error as Error).message);
+      toast.error('Error generating slideshow: ' + (error as Error).message);
     } finally {
       setIsGenerating(false);
     }

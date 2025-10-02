@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import Link from "next/link";
+import { toast } from "sonner";
 
 const RANDOM_TOPICS = [
   "The Future of Artificial Intelligence",
@@ -70,7 +71,7 @@ export default function DashboardPage() {
 
       router.push(`/slideshow/${savedResult.slideshow.id}`);
     } catch (error) {
-      alert("Error generating slideshow: " + (error as Error).message);
+      toast.error("Error generating slideshow: " + (error as Error).message);
     } finally {
       setIsGeneratingRandom(false);
     }

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
+import { AuthLayout } from '@/components/auth-layout';
 import { trpc } from '@/lib/trpc';
 
 export default function SignUpPage() {
@@ -11,6 +13,8 @@ export default function SignUpPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const router = useRouter();
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const { data: userData, isLoading: userLoading } = trpc.auth.getUser.useQuery();
 
@@ -22,8 +26,8 @@ export default function SignUpPage() {
         router.refresh();
       }, 2000);
     },
-    onError: (error) => {
-      setError(error.message);
+    onError: (signUpError) => {
+      setError(signUpError.message);
     },
   });
 
@@ -33,16 +37,40 @@ export default function SignUpPage() {
     }
   }, [userData, userLoading, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedEmail) {
+      toast.error('Email is required.');
+      return;
+    }
+
+    if (!emailPattern.test(trimmedEmail)) {
+      toast.error('Enter a valid email address.');
+      return;
+    }
+
+    if (!trimmedPassword) {
+      toast.error('Password is required.');
+      return;
+    }
+
+    if (trimmedPassword.length < 6) {
+      toast.error('Password must be at least 6 characters long.');
+      return;
+    }
+
     setError('');
-    signUpMutation.mutate({ email, password });
+    setSuccess(false);
+    signUpMutation.mutate({ email: trimmedEmail, password: trimmedPassword });
   };
 
   if (userLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#60a5fa]"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#050505]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-400"></div>
       </div>
     );
   }
@@ -52,85 +80,75 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-      <div className="max-w-md w-full space-y-8 p-8 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
-        <div>
-          <h2 className="text-center text-3xl font-bold text-white">
-            Create your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-[#a0a0a0]">
-            Start creating amazing presentations
-          </p>
+    <AuthLayout
+      title="Create your InstaSlide account"
+      subtitle="Bring your storytelling to life with AI-assisted slides."
+      description="Sign up in seconds and start designing presentations that impress. Choose a password with at least six characters to continue."
+      footer={
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-[#6b7280]">Already with us?</span>
+          <Link href="/auth/sign-in" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+            Sign in instead
+          </Link>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md bg-red-500/10 border border-red-500/20 p-4">
-              <p className="text-sm text-red-400">{error}</p>
-            </div>
-          )}
-          {success && (
-            <div className="rounded-md bg-green-500/10 border border-green-500/20 p-4">
-              <p className="text-sm text-green-400">
-                Account created successfully! Redirecting...
-              </p>
-            </div>
-          )}
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email-address" className="block text-sm font-medium text-[#ededed] mb-2">
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-md block w-full px-3 py-2 bg-[#121212] border border-[#2a2a2a] placeholder-[#666] text-white focus:outline-none focus:ring-2 focus:ring-[#60a5fa] focus:border-transparent sm:text-sm"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#ededed] mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={6}
-                className="appearance-none rounded-md block w-full px-3 py-2 bg-[#121212] border border-[#2a2a2a] placeholder-[#666] text-white focus:outline-none focus:ring-2 focus:ring-[#60a5fa] focus:border-transparent sm:text-sm"
-                placeholder="At least 6 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+      }
+    >
+      <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+        {error ? (
+          <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3">
+            <p className="text-sm text-red-300">{error}</p>
           </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={signUpMutation.isPending}
-              className="w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#60a5fa] hover:bg-[#3b82f6] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#60a5fa] focus:ring-offset-[#1a1a1a] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {signUpMutation.isPending ? 'Creating account...' : 'Sign up'}
-            </button>
+        ) : null}
+        {success ? (
+          <div className="rounded-md border border-emerald-400/40 bg-emerald-400/10 p-3">
+            <p className="text-sm text-emerald-200">
+              Account created successfully! Redirecting...
+            </p>
           </div>
-
-          <div className="text-center">
-            <Link
-              href="/auth/sign-in"
-              className="text-sm font-medium text-[#60a5fa] hover:text-[#3b82f6] transition-colors"
-            >
-              Already have an account? Sign in
-            </Link>
+        ) : null}
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <label htmlFor="email-address" className="block text-sm font-medium text-[#d1d5db]">
+              Email address
+            </label>
+            <input
+              id="email-address"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="block w-full rounded-md border border-[#1f2937] bg-[#050505] px-3 py-2 text-sm text-white shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
-        </form>
-      </div>
-    </div>
+          <div className="space-y-2">
+            <label htmlFor="password" className="block text-sm font-medium text-[#d1d5db]">
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={6}
+              className="block w-full rounded-md border border-[#1f2937] bg-[#050505] px-3 py-2 text-sm text-white shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
+              placeholder="At least 6 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+        </div>
+        <button
+          type="submit"
+          disabled={signUpMutation.isPending}
+          className="inline-flex w-full items-center justify-center rounded-md bg-emerald-400 px-4 py-2.5 text-sm font-medium text-black transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-[#050505] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {signUpMutation.isPending ? 'Creating account...' : 'Create account'}
+        </button>
+      </form>
+    </AuthLayout>
   );
 }

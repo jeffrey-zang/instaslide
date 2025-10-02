@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
+import { AuthLayout } from '@/components/auth-layout';
 import { trpc } from '@/lib/trpc';
 
 export default function SignInPage() {
@@ -11,6 +13,8 @@ export default function SignInPage() {
   const [error, setError] = useState('');
   const router = useRouter();
 
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   const { data: userData, isLoading: userLoading } = trpc.auth.getUser.useQuery();
 
   const signInMutation = trpc.auth.signIn.useMutation({
@@ -18,8 +22,8 @@ export default function SignInPage() {
       router.push('/dashboard');
       router.refresh();
     },
-    onError: (error) => {
-      setError(error.message);
+    onError: (signInError) => {
+      setError(signInError.message);
     },
   });
 
@@ -29,16 +33,34 @@ export default function SignInPage() {
     }
   }, [userData, userLoading, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedEmail) {
+      toast.error('Email is required.');
+      return;
+    }
+
+    if (!emailPattern.test(trimmedEmail)) {
+      toast.error('Enter a valid email address.');
+      return;
+    }
+
+    if (!trimmedPassword) {
+      toast.error('Password is required.');
+      return;
+    }
+
     setError('');
-    signInMutation.mutate({ email, password });
+    signInMutation.mutate({ email: trimmedEmail, password: trimmedPassword });
   };
 
   if (userLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#60a5fa]"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#050505]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-400"></div>
       </div>
     );
   }
@@ -48,77 +70,67 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-      <div className="max-w-md w-full space-y-8 p-8 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
-        <div>
-          <h2 className="text-center text-3xl font-bold text-white">
-            Sign in to InstaSlide
-          </h2>
-          <p className="mt-2 text-center text-sm text-[#a0a0a0]">
-            Create amazing presentations with AI
-          </p>
+    <AuthLayout
+      title="Sign in to InstaSlide"
+      subtitle="Transform ideas into polished decks in seconds."
+      description="Enter your credentials to continue. Your workspace, presentations, and templates will be waiting on the other side."
+      footer={
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-[#6b7280]">Don&apos;t have an account?</span>
+          <Link href="/auth/sign-up" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+            Create one now
+          </Link>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md bg-red-500/10 border border-red-500/20 p-4">
-              <p className="text-sm text-red-400">{error}</p>
-            </div>
-          )}
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email-address" className="block text-sm font-medium text-[#ededed] mb-2">
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-md block w-full px-3 py-2 bg-[#121212] border border-[#2a2a2a] placeholder-[#666] text-white focus:outline-none focus:ring-2 focus:ring-[#60a5fa] focus:border-transparent sm:text-sm"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#ededed] mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="appearance-none rounded-md block w-full px-3 py-2 bg-[#121212] border border-[#2a2a2a] placeholder-[#666] text-white focus:outline-none focus:ring-2 focus:ring-[#60a5fa] focus:border-transparent sm:text-sm"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+      }
+    >
+      <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+        {error ? (
+          <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3">
+            <p className="text-sm text-red-300">{error}</p>
           </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={signInMutation.isPending}
-              className="w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#60a5fa] hover:bg-[#3b82f6] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#60a5fa] focus:ring-offset-[#1a1a1a] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {signInMutation.isPending ? 'Signing in...' : 'Sign in'}
-            </button>
+        ) : null}
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <label htmlFor="email-address" className="block text-sm font-medium text-[#d1d5db]">
+              Email address
+            </label>
+            <input
+              id="email-address"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="block w-full rounded-md border border-[#1f2937] bg-[#050505] px-3 py-2 text-sm text-white shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
-
-          <div className="text-center">
-            <Link
-              href="/auth/sign-up"
-              className="text-sm font-medium text-[#60a5fa] hover:text-[#3b82f6] transition-colors"
-            >
-              Don&apos;t have an account? Sign up
-            </Link>
+          <div className="space-y-2">
+            <label htmlFor="password" className="block text-sm font-medium text-[#d1d5db]">
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              className="block w-full rounded-md border border-[#1f2937] bg-[#050505] px-3 py-2 text-sm text-white shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+        <button
+          type="submit"
+          disabled={signInMutation.isPending}
+          className="inline-flex w-full items-center justify-center rounded-md bg-emerald-400 px-4 py-2.5 text-sm font-medium text-black transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-[#050505] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {signInMutation.isPending ? 'Signing in...' : 'Continue'}
+        </button>
+      </form>
+    </AuthLayout>
   );
 }

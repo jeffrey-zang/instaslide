@@ -4,11 +4,12 @@ import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import Link from 'next/link';
-import { SlideshowViewer } from '@/components/slideshow-viewer';
+import { SlideViewer } from '@/components/slide-viewer';
+import { toast } from 'sonner';
 
 export default function SlideshowPage() {
-  const params = useParams();
-  const id = params.id as string;
+  const params = useParams() as { id: string };
+  const id = params.id;
   const [shareUrl, setShareUrl] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -31,13 +32,13 @@ export default function SlideshowPage() {
       });
       setShowShareModal(true);
     } catch {
-      alert('Error updating sharing settings');
+      toast.error('Error updating sharing settings');
     }
   };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(shareUrl);
-    alert('Link copied to clipboard!');
+    toast.success('Link copied to clipboard!');
   };
 
   if (isLoading) {
@@ -111,7 +112,7 @@ export default function SlideshowPage() {
         </div>
       </nav>
 
-      <SlideshowViewer id={id} markdown={data.slideshow.markdown} />
+      <SlideViewer markdown={data.slideshow.markdown} />
 
       {showShareModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
