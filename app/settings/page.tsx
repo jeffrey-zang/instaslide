@@ -4,10 +4,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth-context';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { data: userData, isLoading: userLoading } = trpc.auth.getUser.useQuery();
+  const supabase = createClient();
+  const { user, loading: userLoading } = useAuth();
   const { data: slideshowsData } = trpc.slideshow.list.useQuery();
 
   const [email, setEmail] = useState('');
@@ -42,10 +46,10 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    if (!userLoading && !userData?.user) {
+    if (!userLoading && !user) {
       router.push('/auth/sign-in');
     }
-  }, [userData, userLoading, router]);
+  }, [user, userLoading, router]);
 
   if (userLoading) {
     return (
@@ -58,7 +62,7 @@ export default function SettingsPage() {
     );
   }
 
-  if (!userData?.user) {
+  if (!user) {
     return null;
   }
 
@@ -79,6 +83,16 @@ export default function SettingsPage() {
       return;
     }
     updatePasswordMutation.mutate({ password });
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      router.push('/auth/sign-in');
+      router.refresh();
+    } catch {
+      toast.error('Error signing out');
+    }
   };
 
   return (
@@ -145,13 +159,10 @@ export default function SettingsPage() {
             Settings
           </Link>
           <div className="px-3 py-2 text-xs text-[#666] mb-2">
-            {userData.user.email}
+            {user.email}
           </div>
           <button
-            onClick={() => {
-              trpc.auth.signOut.useMutation().mutate();
-              router.push('/auth/sign-in');
-            }}
+            onClick={handleSignOut}
             className="flex items-center gap-3 px-3 py-2 text-sm text-[#a0a0a0] hover:text-white hover:bg-[#1a1a1a] rounded w-full transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,7 +196,7 @@ export default function SettingsPage() {
                 <label className="block text-sm text-[#a0a0a0] mb-2">
                   Current email
                 </label>
-                <div className="text-white">{userData.user.email}</div>
+                <div className="text-white">{user.email}</div>
               </div>
             </div>
 

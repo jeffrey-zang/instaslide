@@ -1,5 +1,5 @@
 export interface SlideContent {
-  frontmatter: Record<string, any>;
+  frontmatter: Record<string, string>;
   content: string;
 }
 
@@ -83,8 +83,8 @@ function processSlide(slide: SlideContent): SlideContent {
   };
 }
 
-function parseFrontmatter(yaml: string): Record<string, any> {
-  const result: Record<string, any> = {};
+function parseFrontmatter(yaml: string): Record<string, string> {
+  const result: Record<string, string> = {};
   const lines = yaml.split('\n');
   
   for (const line of lines) {

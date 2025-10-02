@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import Link from "next/link";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 
 const RANDOM_TOPICS = [
   "The Future of Artificial Intelligence",
@@ -34,9 +36,9 @@ const RANDOM_TOPICS = [
 
 export default function DashboardPage() {
   const router = useRouter();
+  const supabase = createClient();
+  const { user, loading: userLoading } = useAuth();
   const [isGeneratingRandom, setIsGeneratingRandom] = useState(false);
-  const { data: userData, isLoading: userLoading } =
-    trpc.auth.getUser.useQuery();
   const { data: slideshowsData, refetch } = trpc.slideshow.list.useQuery();
   const deleteMutation = trpc.slideshow.delete.useMutation({
     onSuccess: () => {
@@ -48,10 +50,20 @@ export default function DashboardPage() {
   const saveMutation = trpc.slideshow.save.useMutation();
 
   useEffect(() => {
-    if (!userLoading && !userData?.user) {
+    if (!userLoading && !user) {
       router.push("/auth/sign-in");
     }
-  }, [userData, userLoading, router]);
+  }, [user, userLoading, router]);
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      router.push("/auth/sign-in");
+      router.refresh();
+    } catch {
+      toast.error("Error signing out");
+    }
+  };
 
   const handleRandomTopic = async () => {
     const randomTopic =
@@ -88,7 +100,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!userData?.user) {
+  if (!user) {
     return null;
   }
 
@@ -194,13 +206,10 @@ export default function DashboardPage() {
             Settings
           </Link>
           <div className="px-3 py-2 text-xs text-[#666] mb-2">
-            {userData.user.email}
+            {user.email}
           </div>
           <button
-            onClick={() => {
-              trpc.auth.signOut.useMutation().mutate();
-              router.push("/auth/sign-in");
-            }}
+            onClick={handleSignOut}
             className="flex items-center gap-3 px-3 py-2 text-sm text-[#a0a0a0] hover:text-white hover:bg-[#1a1a1a] rounded w-full transition-colors"
           >
             <svg

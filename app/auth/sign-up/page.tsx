@@ -5,39 +5,28 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { AuthLayout } from '@/components/auth-layout';
-import { trpc } from '@/lib/trpc';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/auth-context';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const supabase = createClient();
+  const { user, loading: userLoading } = useAuth();
 
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  const { data: userData, isLoading: userLoading } = trpc.auth.getUser.useQuery();
-
-  const signUpMutation = trpc.auth.signUp.useMutation({
-    onSuccess: () => {
-      setSuccess(true);
-      setTimeout(() => {
-        router.push('/dashboard');
-        router.refresh();
-      }, 2000);
-    },
-    onError: (signUpError) => {
-      setError(signUpError.message);
-    },
-  });
-
   useEffect(() => {
-    if (!userLoading && userData?.user) {
+    if (!userLoading && user) {
       router.push('/dashboard');
     }
-  }, [userData, userLoading, router]);
+  }, [user, userLoading, router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
@@ -64,7 +53,30 @@ export default function SignUpPage() {
 
     setError('');
     setSuccess(false);
-    signUpMutation.mutate({ email: trimmedEmail, password: trimmedPassword });
+    setIsLoading(true);
+
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password: trimmedPassword,
+      });
+
+      if (signUpError) {
+        setError(signUpError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      if (data.user) {
+        setSuccess(true);
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000);
+      }
+    } catch {
+      setError('An unexpected error occurred.');
+      setIsLoading(false);
+    }
   };
 
   if (userLoading) {
@@ -75,7 +87,7 @@ export default function SignUpPage() {
     );
   }
 
-  if (userData?.user) {
+  if (user) {
     return null;
   }
 
@@ -143,10 +155,10 @@ export default function SignUpPage() {
         </div>
         <button
           type="submit"
-          disabled={signUpMutation.isPending}
+          disabled={isLoading}
           className="inline-flex w-full items-center justify-center rounded-md bg-emerald-400 px-4 py-2.5 text-sm font-medium text-black transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-[#050505] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {signUpMutation.isPending ? 'Creating account...' : 'Create account'}
+          {isLoading ? 'Creating account...' : 'Create account'}
         </button>
       </form>
     </AuthLayout>

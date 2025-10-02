@@ -71,7 +71,6 @@ export function SlideViewer({ markdown }: SlideViewerProps) {
 
   const slide = slides[currentSlide];
   const layout = slide.frontmatter.layout || 'default';
-  const theme = slide.frontmatter.theme || 'default';
   const slideClass = slide.frontmatter.class || '';
 
   const getLayoutClasses = () => {

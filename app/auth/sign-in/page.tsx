@@ -5,35 +5,27 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { AuthLayout } from '@/components/auth-layout';
-import { trpc } from '@/lib/trpc';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/auth-context';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const supabase = createClient();
+  const { user, loading: userLoading } = useAuth();
 
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  const { data: userData, isLoading: userLoading } = trpc.auth.getUser.useQuery();
-
-  const signInMutation = trpc.auth.signIn.useMutation({
-    onSuccess: () => {
-      router.push('/dashboard');
-      router.refresh();
-    },
-    onError: (signInError) => {
-      setError(signInError.message);
-    },
-  });
-
   useEffect(() => {
-    if (!userLoading && userData?.user) {
+    if (!userLoading && user) {
       router.push('/dashboard');
     }
-  }, [userData, userLoading, router]);
+  }, [user, userLoading, router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
@@ -54,7 +46,27 @@ export default function SignInPage() {
     }
 
     setError('');
-    signInMutation.mutate({ email: trimmedEmail, password: trimmedPassword });
+    setIsLoading(true);
+
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password: trimmedPassword,
+      });
+
+      if (signInError) {
+        setError(signInError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      if (data.user) {
+        router.push('/dashboard');
+      }
+    } catch {
+      setError('An unexpected error occurred.');
+      setIsLoading(false);
+    }
   };
 
   if (userLoading) {
@@ -65,7 +77,7 @@ export default function SignInPage() {
     );
   }
 
-  if (userData?.user) {
+  if (user) {
     return null;
   }
 
@@ -125,10 +137,10 @@ export default function SignInPage() {
         </div>
         <button
           type="submit"
-          disabled={signInMutation.isPending}
+          disabled={isLoading}
           className="inline-flex w-full items-center justify-center rounded-md bg-emerald-400 px-4 py-2.5 text-sm font-medium text-black transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-[#050505] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {signInMutation.isPending ? 'Signing in...' : 'Continue'}
+          {isLoading ? 'Signing in...' : 'Continue'}
         </button>
       </form>
     </AuthLayout>

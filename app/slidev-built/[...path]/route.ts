@@ -53,7 +53,7 @@ export async function GET(_request: Request, context: { params: Promise<{ path?:
 
   try {
     const fileBuffer = await readFile(normalizedPath);
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
         'Content-Type': getContentType(relativePath),
         'Cache-Control': 'public, max-age=60',

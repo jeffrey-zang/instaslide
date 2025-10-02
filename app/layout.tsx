@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import { TRPCProvider } from "@/lib/providers/trpc-provider";
+import { AuthProvider } from "@/lib/auth-context";
 import { Toaster } from "sonner";
 
 const manrope = Manrope({
@@ -25,7 +26,9 @@ export default function RootLayout({
       <body
         className={`${manrope.variable} antialiased`}
       >
-        <TRPCProvider>{children}</TRPCProvider>
+        <AuthProvider>
+          <TRPCProvider>{children}</TRPCProvider>
+        </AuthProvider>
         <Toaster theme="dark" position="top-center" />
       </body>
     </html>
